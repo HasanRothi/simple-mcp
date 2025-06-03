@@ -22,7 +22,6 @@ def ping() -> dict:
 
 @mcp.tool()
 def companies(country: str) -> list:
-    """Return a list of companies."""
     return ac_companies.get(country, ac_companies["others"])
 
 
@@ -34,6 +33,26 @@ def models(company_list: List[str]) -> List[Dict[str, Any]]:
     for company in company_list:
         response.append({"company": company, "models": ac_models.get(company, [])})
     return response
+
+
+@mcp.resource("weather://{city}/current")
+def get_weather(city: str) -> dict:
+    return {
+        "city": city.capitalize(),
+        "temperature": 22,
+        "condition": "Sunny",
+        "unit": "celsius"
+    }
+
+
+@mcp.resource("resource://greeting")
+def get_greeting() -> str:
+    return "Hello from FastMCP Resources!"
+
+
+@mcp.prompt()
+def ask_about_topic(topic: str) -> str:
+    return f"Can you please explain the concept of '{topic}'?"
 
 
 if __name__ == "__main__":
