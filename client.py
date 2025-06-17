@@ -1,25 +1,14 @@
 import asyncio
 from fastmcp import Client
 import json
-
+from fastmcp.client.auth import BearerAuth
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # take environment variables
+load_dotenv()
 
-MCP_SERVER_BASE_URL = os.environ.get('MCP_SERVER_BASE_URL', '')
-
-
-async def get_mcp_client():
-    return Client(MCP_SERVER_BASE_URL + "/mcp")
-
-
-async def main():
-    client = await get_mcp_client()
-    await client_inside(client)
-    await run_tools(client)
-    await run_recourses(client)
-    await run_prompts(client)
+MCP_SERVER_BASE_URL = os.environ.get('MCP_SERVER_BASE_URL', 'http://localhost:8000/mcp')
+AUTH_TOKEN = os.environ.get('AUTH_TOKEN', '')
 
 
 async def run_tools(client: Client):
@@ -28,13 +17,13 @@ async def run_tools(client: Client):
         if not companies:
             return
         company_list = json.loads(companies[0].text)
-        print(company_list)
+        print(f"Company list: {company_list}")
 
         models = await client.call_tool("models", {"company_list": company_list})
         if not models:
             return
         model_list = json.loads(models[0].text)
-        print(model_list)
+        print(f"Model list: {model_list}")
 
 
 async def run_recourses(client: Client):
@@ -55,20 +44,62 @@ async def run_prompts(client: Client):
         prompts = await client.get_prompt("ask_about_topic", arguments={"topic": "What is the weather like?"})
 
         if prompts is not None and len(prompts.messages) > 0:
-            print(prompts.messages[0].content.text)
+            print(f"prompt {prompts.messages[0].content.text}")
 
 
 async def client_inside(client: Client):
     async with client:
-        print(f"tools {await client.list_tools()}\n")
-        print(f"resource {await client.list_resources()}\n")
-        print(f"templates {await client.list_resource_templates()}\n")
-        print(f"prompts {await client.list_prompts()}\n")
+        print(f"-----tools-----\n {await client.list_tools()}\n")
+        print(f"-----resource-----\n {await client.list_resources()}\n")
+        print(f"-----templates-----\n {await client.list_resource_templates()}\n")
+        print(f"-----prompts-----\n {await client.list_prompts()}\n")
 
         functions = [attr for attr in dir(client) if callable(getattr(client, attr)) and not attr.startswith("_")]
         print(f"Client has {len(functions)} functions:")
         for func in functions:
             print("-", func)
+
+
+async def get_mcp_client():
+    """Create MCP client with proper error handling"""
+    try:
+        auth = BearerAuth(token=AUTH_TOKEN)
+        return Client(MCP_SERVER_BASE_URL + "/mcp", auth=auth)
+
+    except Exception as e:
+        print(f"Error creating client: {e}")
+        raise
+
+
+async def test_connection():
+    """Test basic connection before running full client"""
+    try:
+        client = await get_mcp_client()
+        async with client:
+            print("✅ Connection successful!")
+            return True
+    except Exception as e:
+        print(f"❌ Connection failed: {e}")
+        return False
+
+
+async def main():
+    print(f"Connecting to: {MCP_SERVER_BASE_URL}")
+
+    # Test connection first
+    if not await test_connection():
+        print("Connection test failed. Please check:")
+        print("1. Is your MCP server running?")
+        print("2. Is the URL correct?")
+        print("3. Is the token valid and not expired?")
+        return
+
+    # If connection works, run your full client
+    client = await get_mcp_client()
+    await client_inside(client)
+    await run_tools(client)
+    await run_recourses(client)
+    await run_prompts(client)
 
 
 if __name__ == "__main__":
