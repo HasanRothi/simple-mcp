@@ -4,10 +4,11 @@ import json
 from fastmcp.client.auth import BearerAuth
 import os
 from dotenv import load_dotenv
+from fastmcp.client.transports import StreamableHttpTransport
 
 load_dotenv()
 
-MCP_SERVER_BASE_URL = os.environ.get('MCP_SERVER_BASE_URL', 'http://localhost:8000/mcp')
+MCP_SERVER_BASE_URL = os.environ.get('MCP_SERVER_BASE_URL', 'http://localhost:9000')
 AUTH_TOKEN = os.environ.get('AUTH_TOKEN', '')
 
 
@@ -63,8 +64,16 @@ async def client_inside(client: Client):
 async def get_mcp_client():
     """Create MCP client with proper error handling"""
     try:
-        auth = BearerAuth(token=AUTH_TOKEN)
-        return Client(MCP_SERVER_BASE_URL + "/mcp", auth=auth)
+        # auth = BearerAuth(token=AUTH_TOKEN)
+        # return Client(MCP_SERVER_BASE_URL + "/mcp", auth=auth)
+
+        transport = StreamableHttpTransport(
+            url=MCP_SERVER_BASE_URL + "/mcp",
+            headers={"X-API-Key": "your-secret-key"}
+        )
+
+        async with Client(transport) as client:
+            return client
 
     except Exception as e:
         print(f"Error creating client: {e}")
