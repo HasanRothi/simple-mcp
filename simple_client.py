@@ -4,6 +4,7 @@ from fastmcp.client.transports import StreamableHttpTransport
 import os
 import json
 
+
 MCP_SERVER_BASE_URL = os.environ.get('MCP_SERVER_BASE_URL', 'http://localhost:9000')
 
 
@@ -33,6 +34,19 @@ async def get_mcp_client():
     """Helper function to get the client"""
     return await mcp_manager.get_client()
 
+
+async def get_mcp_tools():
+    client = await get_mcp_client()
+    async with client:
+        return await client.list_tools()
+
+
+async def call_mcp_tool(name: str, args):
+    client = await get_mcp_client()
+    async with client:
+        return await client.call_tool(name, args)
+
+
 async def client_inside(client: Client):
     async with client:
         print(f"-----tools-----\n {await client.list_tools()}\n")
@@ -44,6 +58,7 @@ async def client_inside(client: Client):
         print(f"Client has {len(functions)} functions:")
         for func in functions:
             print("-", func)
+
 
 async def run_tools(client: Client):
     async with client:

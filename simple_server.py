@@ -3,7 +3,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from typing import List, Dict, Any
-
+import json
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -25,6 +25,9 @@ mcp = FastMCP(name="MyServer")
 
 @mcp.tool
 def hello(name: str) -> str:
+    """
+    Hello world
+    """
     return f"Hello, {name}!"
 
 
@@ -41,16 +44,33 @@ ac_models = {
 
 @mcp.tool()
 def ping() -> dict:
+    """
+    Check server is running or not
+    """
     return {"status": "ok"}
 
 
 @mcp.tool()
-def companies(country: str) -> list:
-    return ac_companies.get(country, ac_companies["others"])
+def companies(country: str) -> list[str] | str:
+    """
+    Args:
+        country (str): The country name or code (e.g., "bd" or "bangladesh").
+
+    Returns:
+        list: A list of AC company names for the specified country.
+    """
+    normalized_query = country.lower()
+    if normalized_query in ["bd", "bangladesh"]:
+        return json.dumps(ac_companies["bd"])
+    else:
+        return json.dumps(ac_companies.get(normalized_query, ac_companies["others"]))
 
 
 @mcp.tool()
 def models(company_list: List[str]) -> List[Dict[str, Any]]:
+    """
+    Returns a list of model for selected company
+    """
     if len(company_list) == 0:
         return []
     response = []
@@ -79,10 +99,10 @@ def ask_about_topic(topic: str) -> str:
     return f"Can you please explain the concept of '{topic}'"
 
 
-# Add middleware directly to FastMCP
-custom_middleware = [
-    Middleware(APIKeyMiddleware),
-]
+# # Add middleware directly to FastMCP
+# custom_middleware = [
+#     Middleware(APIKeyMiddleware),
+# ]
 
 if __name__ == "__main__":
     # Run FastMCP directly with middleware
@@ -90,5 +110,5 @@ if __name__ == "__main__":
         transport="streamable-http",
         host="0.0.0.0",
         port=9000,
-        middleware=custom_middleware
+        # middleware=custom_middleware
     )
